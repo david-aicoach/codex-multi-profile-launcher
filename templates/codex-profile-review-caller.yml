@@ -1,0 +1,25 @@
+# Copy this file into .github/workflows/codex-profile-review.yml in a trusted target repository.
+# For stronger supply-chain pinning, replace @main with a reviewed release tag or commit SHA.
+name: Codex profile review
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  route-review:
+    if: >-
+      github.event.issue.pull_request != null &&
+      (github.event.comment.author_association == 'OWNER' ||
+       github.event.comment.author_association == 'MEMBER' ||
+       github.event.comment.author_association == 'COLLABORATOR') &&
+      (startsWith(github.event.comment.body, '@codex-david ') ||
+       startsWith(github.event.comment.body, '@codex-business ') ||
+       startsWith(github.event.comment.body, '/codex-david ') ||
+       startsWith(github.event.comment.body, '/codex-business '))
+    uses: tbhrc/codex-multi-profile-launcher/.github/workflows/codex-profile-review-reusable.yml@main

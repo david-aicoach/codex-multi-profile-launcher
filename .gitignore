@@ -13,9 +13,11 @@
 
 # Runtime noise
 runtime/logs/*
+runtime/outputs/*
 runtime/tmp/*
 runtime/worktrees/*
 !runtime/logs/.gitkeep
+!runtime/outputs/.gitkeep
 !runtime/tmp/.gitkeep
 !runtime/worktrees/.gitkeep
 

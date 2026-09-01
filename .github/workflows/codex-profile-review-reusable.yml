@@ -1,0 +1,35 @@
+name: Reusable Codex profile review
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: [self-hosted, codex-profile-router]
+    timeout-minutes: 35
+    concurrency:
+      group: codex-profile-review-${{ github.repository }}-${{ github.event.issue.number }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout trusted router
+        uses: actions/checkout@v4
+        with:
+          repository: tbhrc/codex-multi-profile-launcher
+          ref: main
+          path: codex-router
+          persist-credentials: false
+
+      - name: Verify runner profiles
+        working-directory: codex-router
+        run: bash scripts/verify-review-runner.sh
+
+      - name: Route explicit Codex review
+        working-directory: codex-router
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 tools/github_review_router.py handle-event --event-path "$GITHUB_EVENT_PATH"
