@@ -79,7 +79,7 @@ issue_comment on PR
   -> POST pull-request COMMENT review
 ```
 
-The reusable workflow always checks out `tbhrc/codex-multi-profile-launcher` from `main`, not the PR branch. This prevents a fork PR from changing the router code that runs next to authenticated Codex profiles.
+The reusable workflow uses an immutable pinned `actions/checkout` commit and always checks out `tbhrc/codex-multi-profile-launcher` from `main`, not the PR branch. This prevents a fork PR from changing the router code that runs next to authenticated Codex profiles.
 
 ## Cross-repository rollout
 

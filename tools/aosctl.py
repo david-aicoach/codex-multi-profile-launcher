@@ -76,6 +76,7 @@ def cmd_validate(args: argparse.Namespace) -> None:
         "templates/codex-profile-review-caller.yml",
         ".github/workflows/codex-profile-review.yml",
         ".github/workflows/codex-profile-review-reusable.yml",
+        ".github/workflows/validate.yml",
     ]
     errors: list[str] = []
     for rel in required:

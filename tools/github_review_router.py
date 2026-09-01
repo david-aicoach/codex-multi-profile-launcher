@@ -280,6 +280,8 @@ def run_codex(worker_id: str, prompt: str, output: Path) -> dict[str, Any]:
                                     cwd=workdir, env=env, stdout=out, stderr=err, timeout=1800, check=False)
     except subprocess.TimeoutExpired:
         raise RouterError(f"{name} review exceeded the execution timeout.") from None
+    except OSError:
+        raise RouterError("Codex CLI could not be executed on the self-hosted runner.") from None
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
     if result.returncode or not raw_result.is_file():
