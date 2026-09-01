@@ -10,6 +10,7 @@ workers:
       - hardening
       - integrations
       - test fixes
+      - explicit pull-request review
   C2:
     name: Codex David
     use_for:
@@ -20,6 +21,10 @@ workers:
 
 constraints:
   task_workspace_is_source_of_truth: true
+  explicit_profile_review_routing: true
   automatic_account_rotation: false
+  automatic_profile_fallback: false
   external_write_requires_human_approval: true
+  github_review_command_counts_as_review_approval_only_after_permission_check: true
   auth_json_never_enters_repo: true
+  pull_request_code_is_never_executed_by_review_router: true

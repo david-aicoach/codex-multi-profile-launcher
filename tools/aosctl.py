@@ -49,6 +49,7 @@ def cmd_validate(args: argparse.Namespace) -> None:
         "docs/01_USER_GUIDE.md",
         "docs/02_OPERATING_MODEL.md",
         "docs/03_BUILD_ROADMAP.md",
+        "docs/04_GITHUB_REVIEW_ROUTER.md",
         "agents/claude-orchestrator/AGENT.md",
         "agents/codex-business/AGENT.md",
         "agents/codex-david/AGENT.md",
@@ -60,13 +61,22 @@ def cmd_validate(args: argparse.Namespace) -> None:
         "prompts/00_CODEX_DAVID_BOOTSTRAP.md",
         "prompts/01_CODEX_BUSINESS_CONTINUE.md",
         "prompts/02_CLAUDE_ORCHESTRATOR.md",
+        "prompts/github-pr-review.md",
         "schemas/result.schema.json",
+        "schemas/github-review-result.schema.json",
         "scripts/launch-codex-business-desktop.sh",
         "scripts/launch-codex-david-desktop.sh",
         "scripts/start-codex-business.sh",
         "scripts/start-codex-david.sh",
+        "scripts/verify-review-runner.sh",
         "wrappers/delegate_to_codex.sh",
         "references/SOURCE_NOTES.md",
+        "tools/github_review_router.py",
+        "tests/test_github_review_router.py",
+        "templates/codex-profile-review-caller.yml",
+        ".github/workflows/codex-profile-review.yml",
+        ".github/workflows/codex-profile-review-reusable.yml",
+        ".github/workflows/validate.yml",
     ]
     errors: list[str] = []
     for rel in required:
@@ -78,7 +88,11 @@ def cmd_validate(args: argparse.Namespace) -> None:
         elif args.verbose:
             print(f"ok: {rel}")
 
-    for rel in ("schemas/result.schema.json", "runtime/active_worker.json"):
+    for rel in (
+        "schemas/result.schema.json",
+        "schemas/github-review-result.schema.json",
+        "runtime/active_worker.json",
+    ):
         path = ROOT / rel
         if path.exists():
             try:

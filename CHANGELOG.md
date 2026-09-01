@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- added explicit GitHub PR review routing for `@codex-business review` and `@codex-david review`
+- added a reusable self-hosted GitHub Actions workflow that runs only trusted default-branch router code
+- added strict requester permission checks, command parsing, structured result validation, and sanitized failure handling
+- added a dedicated review-runner verifier and cross-repository caller template
+- kept native `@codex` behavior unchanged and explicitly prohibited quota-based profile rotation or automatic fallback
+
 ## 1.1.0 - 2026-07-11
 
 - simplified the package into a Codex multi-profile launcher

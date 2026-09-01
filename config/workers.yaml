@@ -15,6 +15,7 @@ workers:
       - production_builder
       - hardening_worker
       - integration_worker
+      - reviewer
     max_concurrent_tasks: 1
 
   - id: C2
