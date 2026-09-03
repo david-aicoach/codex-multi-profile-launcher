@@ -80,7 +80,7 @@ This separation is deliberate:
 
 ## Generic Local Executor
 
-`wrappers/delegate_to_codex.sh` supports bounded local workspace-write execution.
+`wrappers/delegate_to_codex.sh` supports bounded local workspace execution.
 
 Example contract:
 
@@ -94,11 +94,14 @@ bash wrappers/delegate_to_codex.sh \
 The wrapper:
 
 1. maps `C1`/`C2` to the exact `CODEX_HOME`;
-2. validates the task file/workdir;
+2. validates and canonicalises the task file/workdir;
 3. locks the task to avoid duplicate local runs;
-4. activates the selected worker;
-5. runs `codex exec --sandbox workspace-write --json`;
-6. writes summary/status/log/event evidence under `runtime/outputs/<TASK-ID>/`.
+4. activates only the selected worker;
+5. runs `codex exec` with `--strict-config`, `--ignore-user-config`, `--ephemeral`, explicit `-C`, built-in `default_permissions=":workspace"`, and `approval_policy="never"`;
+6. does not pass a legacy `--sandbox` mode and does not silently fall back to another profile;
+7. writes summary/status/log/event evidence under `runtime/outputs/<TASK-ID>/`.
+
+For automation, the selected `CODEX_HOME` supplies authentication while ambient user configuration is deliberately ignored. This keeps the execution policy fixed by trusted launcher code rather than by mutable profile settings.
 
 This is a **local executor**, not a GitHub-wide dispatch control plane. The trusted GitHub bridge that allows remote/controller agents to use it belongs to `tbhrc/ai-engine` and is tracked in `tbhrc/ai-engine#44` until live-proven.
 
@@ -127,7 +130,7 @@ The PR-review router is a separate narrow capability:
 @codex-david review    -> C2 -> ~/.codex-david
 ```
 
-It reads PR metadata/diffs through the GitHub API and never checks out/executes PR code.
+It reads PR metadata/diffs through the GitHub API and never checks out/executes PR code. The model runs in an empty disposable review directory under the same deterministic `:workspace`, no-approval, ignored-user-config, ephemeral execution boundary as general work orders.
 
 As of 3 September 2026:
 
@@ -144,6 +147,7 @@ After every meaningful local Codex run, the controller should record in the owni
 - relevant files/diff/artifacts;
 - tests/checks run;
 - output/evidence location;
+- permission profile and approval policy;
 - any provider/budget failure;
 - next action.
 

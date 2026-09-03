@@ -89,9 +89,22 @@ bash wrappers/delegate_to_codex.sh \
 
 Use `--worker C1` only when the controller has explicitly selected the Business identity.
 
-The wrapper performs local workspace-write execution only. It is not authority to push, deploy, send messages or mutate external systems.
+For automated delegated execution, the wrapper uses a fixed trusted policy rather than the profile's ambient interactive config:
 
-For remote/controller-driven GitHub dispatch to this Mac runtime, use the trusted AI Engine path being established in `tbhrc/ai-engine#44`. Do not expose a direct arbitrary-command bridge from this repository.
+```text
+codex exec
++ strict config
++ ignored ambient user config
++ ephemeral session
++ explicit bounded -C workdir
++ default_permissions=":workspace"
++ approval_policy="never"
++ no legacy --sandbox flag
+```
+
+The selected `CODEX_HOME` supplies authentication only. The wrapper is not authority to push, deploy, send messages or mutate external systems, and it never silently falls back to the other profile.
+
+For remote/controller-driven GitHub dispatch to this Mac runtime, use the trusted AI Engine work-order path in `tbhrc/ai-engine#44`. Do not expose a direct arbitrary-command bridge from this repository.
 
 ## 6. Read Results
 
@@ -107,7 +120,7 @@ runtime/outputs/<TASK-ID>/
   error.md      # failure only
 ```
 
-The controlling agent should inspect the result, verify changed files/tests as appropriate, then record the outcome and next action in the owning GitHub Issue/PR.
+Successful status evidence records the selected worker plus the automated permission/session policy. The controlling agent should inspect the result, verify changed files/tests as appropriate, then record the outcome and next action in the owning GitHub Issue/PR.
 
 `runtime/outputs/` is execution evidence, not the durable task tracker.
 
