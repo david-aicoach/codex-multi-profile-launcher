@@ -7,7 +7,7 @@ cd codex-multi-profile-launcher
 bash scripts/bootstrap.sh
 ```
 
-This creates the two Codex homes if missing:
+This creates the two isolated Codex homes if missing:
 
 ```text
 ~/.codex-business
@@ -38,19 +38,23 @@ Do not copy `auth.json` between homes. Do not place `auth.json` in this repo.
 bash scripts/status.sh
 ```
 
+Login status proves authentication only. It does not prove that the account currently has model budget/credits.
+
 ## 4. Start an Interactive Profile
 
-Use `C1` for production implementation:
+Start C1:
 
 ```bash
 bash scripts/start-codex-business.sh
 ```
 
-Use `C2` for prototypes or review:
+Start C2:
 
 ```bash
 bash scripts/start-codex-david.sh
 ```
+
+Profile selection is explicit. The controller decides which seat is appropriate based on task fit, permissions, current availability and remaining budget. The launcher never automatically rotates accounts.
 
 ## 4a. Use Dock Launchers
 
@@ -61,26 +65,33 @@ The macOS launcher apps are:
 ~/Applications/Codex C2 David.app
 ```
 
-Drag either app to the Dock. These launchers keep both the Codex CLI home and the desktop app data separate from the regular app and from each other.
+Drag either app to the Dock. These launchers keep both the Codex CLI home and desktop app data separate from the regular app and from each other.
 
-## 5. Run a Delegated Task
-
-The task should usually live in your task system, for example:
+Exact runtime aliases:
 
 ```text
-/path/to/your/task-workspace/Team Inbox/2_ready/NNN-some-task-YYYY-MM-DD.md
+C1 = Codex Business = ~/.codex-business
+C2 = Codex David    = ~/.codex-david
 ```
 
-Run it through Codex:
+The normal/default `~/.codex` profile is separate and is not the `C2` alias.
+
+## 5. Run a Local Delegated Task
+
+The durable task/work order should live in the owning GitHub repository as an Issue/PR. For a local Codex run, create or materialise the bounded task instructions/worktree locally, then invoke the wrapper explicitly:
 
 ```bash
 bash wrappers/delegate_to_codex.sh \
-  --worker C1 \
-  --task-file "/path/to/your/task-workspace/Team Inbox/2_ready/NNN-some-task-YYYY-MM-DD.md" \
-  --workdir "/path/to/your/project"
+  --worker C2 \
+  --task-file "/absolute/path/to/task.md" \
+  --workdir "/absolute/path/to/bounded/worktree"
 ```
 
-Use `--worker C2` when the assignment is prototype or review oriented.
+Use `--worker C1` only when the controller has explicitly selected the Business identity.
+
+The wrapper performs local workspace-write execution only. It is not authority to push, deploy, send messages or mutate external systems.
+
+For remote/controller-driven GitHub dispatch to this Mac runtime, use the trusted AI Engine path being established in `tbhrc/ai-engine#44`. Do not expose a direct arbitrary-command bridge from this repository.
 
 ## 6. Read Results
 
@@ -93,9 +104,12 @@ runtime/outputs/<TASK-ID>/
   run.log
   events.jsonl
   artifacts/
+  error.md      # failure only
 ```
 
-Larry should summarize the result back into the task file and update `TRACKER.md`.
+The controlling agent should inspect the result, verify changed files/tests as appropriate, then record the outcome and next action in the owning GitHub Issue/PR.
+
+`runtime/outputs/` is execution evidence, not the durable task tracker.
 
 ## 7. Troubleshooting
 
@@ -105,6 +119,14 @@ If both workers appear to use the same account, check:
 CODEX_HOME="$HOME/.codex-business" codex login status
 CODEX_HOME="$HOME/.codex-david" codex login status
 ```
+
+If a real C1 model call fails while login status succeeds, check the exact error before treating it as infrastructure failure. On 3 September 2026, C1 was authenticated but the Business workspace returned:
+
+```text
+ERROR: Your workspace is out of credits. Add credits to continue.
+```
+
+That state must fail closed; do not silently reroute inside the launcher.
 
 If validation fails:
 

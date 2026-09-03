@@ -1,20 +1,39 @@
-# Larry - your task system Orchestrator
+# Controller / Orchestrator Bridge Note
 
-Larry lives in your task workspace, not in this bridge.
+This file is retained at its historical path for compatibility. It no longer defines a Larry-specific Claude Code control plane.
 
-This file exists only to clarify how Claude Code should think about the Codex bridge:
+TBHRC orchestration now lives in GitHub and canonical Skills:
 
-- Larry owns the user conversation.
-- Larry owns task creation and tracker updates.
-- Larry decides whether a Codex dispatch is worth the cold-start cost.
-- Larry invokes `C1` or `C2` only through the wrapper scripts.
-- Larry reads the result and summarizes it back into your task system.
+```text
+founder/user request
+-> owning GitHub repository + Issue/PR
+-> canonical Skill in tbhrc/skills
+-> github-agent-workflow / github-multi-agent-orchestrator
+-> authorised controller chooses executor
+-> tbhrc/ai-engine when trusted Mac-local execution is required
+-> explicit C1 or C2 through this bridge
+-> verified evidence returned to the owning work record
+```
 
-This bridge must not duplicate your task system's SOPs, tracker, agent roster, or memory.
+The controller owns:
 
-Use your task system references for orchestration policy:
+- user/founder intent;
+- work-order and repository routing;
+- provider/seat choice based on task fit, permissions, availability and budget;
+- deciding whether local Codex dispatch is worth the boundary/cold-start cost;
+- explicit `C1` or `C2` selection;
+- verification of the result;
+- applying authorised durable changes through the owning repository workflow;
+- final synthesis and handoff.
 
-- `/path/to/your/task-workspace/AGENTS.md`
-- `/path/to/your/task-workspace/CLAUDE.md`
-- `/path/to/your/task-workspace/Team/agent-index.md`
-- `/path/to/your/task-workspace/Team Knowledge/SOPs/SOP-011-dispatch-a-specialist-subagent.md`
+This bridge owns only Codex profile isolation and bounded local execution.
+
+Do not duplicate the Skill Bank, GitHub Issue state, provider routing policy, or durable work tracker here.
+
+Canonical references:
+
+- https://github.com/tbhrc/skills/tree/main/human-ai-operations-map
+- https://github.com/tbhrc/skills/tree/main/github-agent-workflow
+- https://github.com/tbhrc/skills/tree/main/github-multi-agent-orchestrator
+- https://github.com/tbhrc/skills/tree/main/gh-mac-runner-operator-maintenance
+- https://github.com/tbhrc/ai-engine

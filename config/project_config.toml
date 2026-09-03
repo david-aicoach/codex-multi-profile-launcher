@@ -1,18 +1,26 @@
 project_id = "CODEX-MULTI-PROFILE-LAUNCHER"
 project_name = "Codex Multi-Profile Launcher"
 project_root = "."
-task_workspace_root = "/path/to/your/task-workspace"
-default_manager = "Larry"
-default_production_worker = "C1"
-default_review_worker = "C2"
+control_plane = "GitHub"
+canonical_skills_repo = "tbhrc/skills"
+privileged_runtime_repo = "tbhrc/ai-engine"
+default_manager = "github-controller"
+default_production_worker = ""
+default_review_worker = ""
+
+[workers]
+C1 = "~/.codex-business"
+C2 = "~/.codex-david"
 
 [execution]
 max_active_tasks_per_worker = 1
 require_output_contract = true
+require_explicit_worker = true
 allow_automatic_account_rotation = false
+allow_automatic_profile_fallback = false
 
 [approval]
-external_writes = "human"
-deployments = "human"
-destructive_actions = "human"
-credential_changes = "human"
+external_writes = "owning-workflow"
+deployments = "owning-workflow"
+destructive_actions = "owning-workflow"
+credential_changes = "owning-workflow"

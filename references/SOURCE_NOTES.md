@@ -1,16 +1,21 @@
 # Source Notes
 
-The old ChatGPT-Web draft treated this folder like a separate control plane. That strategy has been retired.
+Historical local task-workspace and Larry orchestration pointers in this repository are retired.
 
-Current source of truth:
+Current TBHRC navigation:
 
-- your task workspace root: `/path/to/your/task-workspace`
-- Claude Code pointer: `/path/to/your/task-workspace/CLAUDE.md`
-- your task system root contract: `/path/to/your/task-workspace/AGENTS.md`
-- Agent roster: `/path/to/your/task-workspace/Team/agent-index.md`
-- Dispatch economics: `/path/to/your/task-workspace/Team Knowledge/SOPs/SOP-011-dispatch-a-specialist-subagent.md`
+- reusable operating methods: `tbhrc/skills`
+- durable work state: the owning GitHub repository and controlling Issue/PR
+- cross-repository execution lifecycle: `tbhrc/skills/github-agent-workflow`
+- multi-agent/provider routing: `tbhrc/skills/github-multi-agent-orchestrator`
+- Mac runner operations: `tbhrc/skills/gh-mac-runner-operator-maintenance`
+- privileged runtime infrastructure: `tbhrc/ai-engine`
 
-This bridge keeps only the Codex profile-isolation idea:
+This launcher retains only the local Codex profile-isolation/runtime capability:
 
-- `C1 / Codex Business` uses `~/.codex-business`
-- `C2 / Codex David` uses `~/.codex-david`
+```text
+C1 / Codex Business -> ~/.codex-business
+C2 / Codex David    -> ~/.codex-david
+```
+
+General GitHub-controlled C1/C2 work-order exposure is tracked in `tbhrc/ai-engine#44`. Canonical provider-failover discovery is tracked in `tbhrc/skills#224`.
