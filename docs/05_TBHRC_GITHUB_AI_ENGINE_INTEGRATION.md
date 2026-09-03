@@ -30,7 +30,7 @@ codex-multi-profile-launcher
 | Alias | Identity | CODEX_HOME | Status on 3 Sep 2026 |
 |---|---|---|---|
 | `C1` | Codex Business | `~/.codex-business` | Authenticated; real execution currently externally blocked by Business workspace credit exhaustion. |
-| `C2` | Codex David | `~/.codex-david` | Authenticated; real PR-review execution proven through AI Engine Mac runner. |
+| `C2` | Codex David | `~/.codex-david` | Authenticated; real model/review execution proven through the AI Engine Mac runner. |
 
 The default `~/.codex` profile may coexist on the Mac. It is not the C2 alias.
 
@@ -38,44 +38,57 @@ The default `~/.codex` profile may coexist on the Mac. It is not the C2 alias.
 
 ### Local general executor
 
-`wrappers/delegate_to_codex.sh` already supports:
+`wrappers/delegate_to_codex.sh` supports:
 
 ```text
 explicit C1/C2 selection
--> exact CODEX_HOME
+-> exact CODEX_HOME for authentication
 -> bounded task file + workdir
--> codex exec --sandbox workspace-write --json
+-> codex exec with strict deterministic automation policy
+   -> --ignore-user-config
+   -> --ephemeral
+   -> explicit -C workdir
+   -> default_permissions=":workspace"
+   -> approval_policy="never"
+   -> no legacy --sandbox mode
 -> local status/summary/log/event evidence
 ```
 
-This is real local execution capability.
+The launcher fails closed on the selected identity and never rotates accounts.
 
 ### GitHub PR-review router
 
-The review router is separately proven through the dedicated `codex-profile-router` self-hosted runner in `tbhrc/ai-engine`.
+The review router uses the same hardened automated Codex boundary in an empty disposable review workspace.
 
 ```text
 @codex-business review -> C1
 @codex-david review    -> C2
 ```
 
-It never checks out or executes PR code and never silently falls back between profiles.
+It fetches PR metadata/diffs as data through GitHub's API, never checks out or executes PR code, and never silently falls back between profiles.
 
-### Missing integration at audit start
+### General work-order integration
 
-At the start of the 3 September 2026 integration audit, AI Engine exposed:
+The GitHub-controlled general work-order adapter is owned by `tbhrc/ai-engine#44`.
 
-- Mac local execution proof;
-- profile login-status adapter;
-- PR-review router;
+Its target architecture is:
 
-but **not** a GitHub-controlled general work-order adapter for `delegate_to_codex.sh`.
+```text
+owning GitHub work order
+-> canonical Skill
+-> explicit executor choice
+-> trusted AI Engine workflow on main
+-> existing Mac runner
+-> exact C1/C2
+-> trusted launcher main + hardened-policy preflight
+-> bounded local worktree
+-> fixed :workspace/no-approval/ephemeral Codex execution
+-> private short-lived patch/result/evidence
+-> controller verifies
+-> owning repository performs normal branch/PR/apply/merge lifecycle
+```
 
-That gap is tracked in:
-
-- `tbhrc/ai-engine#44` — general C1/C2 work-order dispatch;
-- `tbhrc/skills#224` — provider-failover/Skill routing awareness;
-- this repo `#5` — removal of stale Larry/legacy-task-system assumptions.
+The Codex worker does **not** independently push, merge, deploy, send messages or mutate production systems.
 
 ## Required Routing Behaviour
 
@@ -96,27 +109,22 @@ Never implement:
 - silent C1 <-> C2 fallback;
 - credential copying;
 - shared `auth.json`;
-- arbitrary remote shell control.
+- arbitrary remote shell control;
+- ambient profile config as the authority source for automated execution.
 
-## General Dispatch Target Architecture
+## Security Boundary
 
-The bounded target in `tbhrc/ai-engine#44` is:
+For automation, the selected `CODEX_HOME` supplies authentication only. Trusted launcher code fixes the execution policy. Prompt instructions are defense in depth, not the filesystem/network boundary.
 
-```text
-owning GitHub work order
--> canonical Skill
--> explicit executor choice
--> trusted AI Engine workflow on main
--> existing Mac runner
--> explicit C1/C2
--> bounded local worktree
--> local Codex workspace-write
--> patch/result/evidence only
--> controller verifies
--> owning repository performs normal branch/PR/apply/merge lifecycle
-```
+The production boundary must be backed by live Mac evidence that:
 
-Version 1 of that lane should **not** let the Codex worker independently push, merge, deploy, send messages or mutate production systems.
+- the installed Codex CLI accepts the permission profile;
+- work inside the assigned workspace can be written when required;
+- unrelated sibling/home canaries cannot be read by the sandbox boundary;
+- network is denied by the selected profile;
+- no real credential/auth file is touched during proof.
+
+That proof is tracked in `tbhrc/ai-engine#48`.
 
 ## VPS Relationship
 
@@ -139,6 +147,7 @@ Every meaningful run returns to the owning GitHub Issue/PR with:
 - execution status;
 - diff/files/artifacts where relevant;
 - checks/tests;
+- permission/session policy where relevant;
 - provider/budget failure if any;
 - next action;
 - verified outcome before close/merge.
