@@ -38,20 +38,6 @@ case "$WORKER" in
     ;;
 esac
 
-assert_permission_config_compatible() {
-  local config="$CODEX_HOME/config.toml"
-  if [ ! -f "$config" ]; then
-    return 0
-  fi
-
-  # Permission profiles and the legacy sandbox model must not be mixed.
-  # Inspect only the non-secret config key name; never print config contents.
-  if grep -Eq '^[[:space:]]*sandbox_mode[[:space:]]*=' "$config"; then
-    echo "$CODEX_BRIDGE_WORKER_NAME config still declares legacy sandbox_mode; refusing permission-profile execution." >&2
-    exit 4
-  fi
-}
-
 TASK_FILE="$(cd "$(dirname "$TASK_FILE")" && pwd)/$(basename "$TASK_FILE")"
 if [ ! -f "$TASK_FILE" ]; then
   echo "Task file not found: $TASK_FILE" >&2
@@ -61,6 +47,7 @@ if [ ! -d "$WORKDIR" ]; then
   echo "Work directory not found: $WORKDIR" >&2
   exit 2
 fi
+WORKDIR="$(cd "$WORKDIR" && pwd)"
 
 TASK_BASENAME="$(basename "$TASK_FILE")"
 if [[ "$TASK_BASENAME" =~ ^(TASK-[0-9]+) ]]; then
@@ -85,20 +72,22 @@ if ! mkdir "$LOCK_DIR" 2>/dev/null; then
 fi
 trap 'rmdir "$LOCK_DIR" 2>/dev/null || true' EXIT
 
-assert_permission_config_compatible
 python3 "$ROOT/tools/aosctl.py" activate-worker "$WORKER" --codex-home "$CODEX_HOME"
 
 STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 set +e
-(
-  cd "$WORKDIR"
-  cat "$TASK_FILE" | codex exec - \
-    --strict-config \
-    -c "default_permissions=\"$CODEX_PERMISSION_PROFILE\"" \
-    -c 'approval_policy="never"' \
-    --json \
-    --output-last-message "$OUTPUT_DIR/summary.md"
-) > "$OUTPUT_DIR/events.jsonl" 2> "$OUTPUT_DIR/run.log"
+cat "$TASK_FILE" | codex exec \
+  --strict-config \
+  --ignore-user-config \
+  --ephemeral \
+  --skip-git-repo-check \
+  -C "$WORKDIR" \
+  -c "default_permissions=\"$CODEX_PERMISSION_PROFILE\"" \
+  -c 'approval_policy="never"' \
+  --json \
+  --output-last-message "$OUTPUT_DIR/summary.md" \
+  - \
+  > "$OUTPUT_DIR/events.jsonl" 2> "$OUTPUT_DIR/run.log"
 EXIT_CODE=$?
 set -e
 FINISHED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -111,9 +100,9 @@ if [ "$EXIT_CODE" -ne 0 ]; then
   ERRORS='["codex exec returned a non-zero exit code"]'
 fi
 
-python3 - "$OUTPUT_DIR/status.json" "$TASK_ID" "$WORKER" "$CODEX_BRIDGE_WORKER_NAME" "$STATUS" "$STARTED_AT" "$FINISHED_AT" "$EXIT_CODE" "$ERRORS" <<'PY_STATUS'
+python3 - "$OUTPUT_DIR/status.json" "$TASK_ID" "$WORKER" "$CODEX_BRIDGE_WORKER_NAME" "$STATUS" "$STARTED_AT" "$FINISHED_AT" "$EXIT_CODE" "$ERRORS" "$WORKDIR" <<'PY_STATUS'
 import json, sys
-path, task_id, worker_id, worker_name, status, started, finished, exit_code, errors = sys.argv[1:]
+path, task_id, worker_id, worker_name, status, started, finished, exit_code, errors, workdir = sys.argv[1:]
 data = {
     "task_id": task_id,
     "worker_id": worker_id,
@@ -126,8 +115,11 @@ data = {
     "errors": json.loads(errors),
     "tests": [],
     "review_recommended": True,
+    "workdir": workdir,
     "permission_profile": ":workspace",
     "approval_policy": "never",
+    "user_config": "ignored",
+    "session_persistence": "ephemeral",
 }
 with open(path, "w", encoding="utf-8") as f:
     json.dump(data, f, indent=2)
