@@ -5,6 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKER=""
 TASK_FILE=""
 WORKDIR="$ROOT"
+CODEX_PERMISSION_PROFILE=":workspace"
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -36,6 +37,20 @@ case "$WORKER" in
     exit 2
     ;;
 esac
+
+assert_permission_config_compatible() {
+  local config="$CODEX_HOME/config.toml"
+  if [ ! -f "$config" ]; then
+    return 0
+  fi
+
+  # Permission profiles and the legacy sandbox model must not be mixed.
+  # Inspect only the non-secret config key name; never print config contents.
+  if grep -Eq '^[[:space:]]*sandbox_mode[[:space:]]*=' "$config"; then
+    echo "$CODEX_BRIDGE_WORKER_NAME config still declares legacy sandbox_mode; refusing permission-profile execution." >&2
+    exit 4
+  fi
+}
 
 TASK_FILE="$(cd "$(dirname "$TASK_FILE")" && pwd)/$(basename "$TASK_FILE")"
 if [ ! -f "$TASK_FILE" ]; then
@@ -70,6 +85,7 @@ if ! mkdir "$LOCK_DIR" 2>/dev/null; then
 fi
 trap 'rmdir "$LOCK_DIR" 2>/dev/null || true' EXIT
 
+assert_permission_config_compatible
 python3 "$ROOT/tools/aosctl.py" activate-worker "$WORKER" --codex-home "$CODEX_HOME"
 
 STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -77,7 +93,9 @@ set +e
 (
   cd "$WORKDIR"
   cat "$TASK_FILE" | codex exec - \
-    --sandbox workspace-write \
+    --strict-config \
+    -c "default_permissions=\"$CODEX_PERMISSION_PROFILE\"" \
+    -c 'approval_policy="never"' \
     --json \
     --output-last-message "$OUTPUT_DIR/summary.md"
 ) > "$OUTPUT_DIR/events.jsonl" 2> "$OUTPUT_DIR/run.log"
@@ -108,6 +126,8 @@ data = {
     "errors": json.loads(errors),
     "tests": [],
     "review_recommended": True,
+    "permission_profile": ":workspace",
+    "approval_policy": "never",
 }
 with open(path, "w", encoding="utf-8") as f:
     json.dump(data, f, indent=2)
