@@ -65,6 +65,28 @@ class EventTests(unittest.TestCase):
         self.assertEqual(ctx.command.worker_id, "C1")
 
 
+class SecurityInvocationTests(unittest.TestCase):
+    def test_exact_profile_mapping(self):
+        self.assertEqual(router.WORKERS["C2"]["home"], "~/.codex-david")
+        self.assertEqual(router.WORKERS["C1"]["home"], "~/.codex-business")
+
+    def test_review_exec_uses_permission_profile_not_legacy_sandbox(self):
+        workdir = Path("/tmp/review-work")
+        raw_result = Path("/tmp/review-result.json")
+        command = router.secure_exec_command(workdir, raw_result)
+        self.assertEqual(command[:2], ["codex", "exec"])
+        self.assertIn("--strict-config", command)
+        self.assertIn("--ignore-user-config", command)
+        self.assertIn("--ephemeral", command)
+        self.assertIn("--skip-git-repo-check", command)
+        self.assertIn("-C", command)
+        self.assertEqual(command[command.index("-C") + 1], str(workdir))
+        self.assertIn('default_permissions=":workspace"', command)
+        self.assertIn('approval_policy="never"', command)
+        self.assertNotIn("--sandbox", command)
+        self.assertEqual(command[-1], "-")
+
+
 class ResultValidationTests(unittest.TestCase):
     def valid_result(self):
         return {
