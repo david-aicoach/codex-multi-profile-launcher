@@ -1,30 +1,45 @@
-version: 1
+version: 2
 
-principle: your task system routes work; this bridge only selects a Codex profile.
+principle: GitHub controller routes work; this bridge only executes the explicitly selected Codex profile.
 
 workers:
   C1:
     name: Codex Business
-    use_for:
-      - production implementation
+    codex_home: ~/.codex-business
+    suitable_for:
+      - implementation
       - hardening
       - integrations
       - test fixes
       - explicit pull-request review
   C2:
     name: Codex David
-    use_for:
+    codex_home: ~/.codex-david
+    suitable_for:
+      - implementation
       - prototypes
       - bootstrap experiments
       - independent review
       - second-pass critique
 
+selection:
+  owner: controller
+  factors:
+    - task_fit
+    - permissions
+    - availability
+    - remaining_budget
+  permanent_profile_priority: false
+
 constraints:
-  task_workspace_is_source_of_truth: true
+  github_work_record_is_source_of_truth: true
+  canonical_skills_are_reusable_method: true
+  ai_engine_owns_remote_privileged_dispatch: true
+  explicit_profile_required: true
   explicit_profile_review_routing: true
   automatic_account_rotation: false
   automatic_profile_fallback: false
-  external_write_requires_human_approval: true
+  external_write_requires_owning_workflow_authority: true
   github_review_command_counts_as_review_approval_only_after_permission_check: true
   auth_json_never_enters_repo: true
   pull_request_code_is_never_executed_by_review_router: true
