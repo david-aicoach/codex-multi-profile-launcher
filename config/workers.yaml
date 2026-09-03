@@ -1,10 +1,12 @@
-version: 1
+version: 2
 
 manager:
-  id: Larry
-  name: Larry
-  runtime: Claude Code
-  source_of_truth: /path/to/your/task-workspace
+  id: github-controller
+  name: TBHRC GitHub Controller
+  runtime: authorised-agent
+  source_of_truth: owning GitHub repository and controlling Issue/PR
+  reusable_method: tbhrc/skills
+  privileged_runtime: tbhrc/ai-engine
 
 workers:
   - id: C1
@@ -12,10 +14,10 @@ workers:
     runtime: codex
     codex_home: ~/.codex-business
     primary_roles:
-      - production_builder
-      - hardening_worker
-      - integration_worker
-      - reviewer
+      - implementation
+      - hardening
+      - integration
+      - review
     max_concurrent_tasks: 1
 
   - id: C2
@@ -23,7 +25,19 @@ workers:
     runtime: codex
     codex_home: ~/.codex-david
     primary_roles:
-      - prototype_builder
-      - bootstrap_worker
-      - reviewer
+      - implementation
+      - prototype
+      - bootstrap
+      - review
     max_concurrent_tasks: 1
+
+routing:
+  selection_owner: controller
+  selection_factors:
+    - task_fit
+    - permissions
+    - availability
+    - remaining_budget
+  explicit_profile_required: true
+  automatic_account_rotation: false
+  automatic_profile_fallback: false
