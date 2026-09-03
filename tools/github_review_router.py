@@ -207,6 +207,23 @@ def verify_profile(worker_id: str) -> Path:
     return home
 
 
+def secure_exec_command(workdir: Path, raw_result: Path) -> list[str]:
+    """Build the fixed least-privilege Codex invocation used by routed reviews."""
+    return [
+        "codex", "exec",
+        "--strict-config",
+        "--ignore-user-config",
+        "--ephemeral",
+        "--skip-git-repo-check",
+        "-C", str(workdir),
+        "-c", 'default_permissions=":workspace"',
+        "-c", 'approval_policy="never"',
+        "--json",
+        "--output-last-message", str(raw_result),
+        "-",
+    ]
+
+
 def build_prompt(command: ReviewCommand, repository: str, pr: dict[str, Any], diff: str, truncated: bool) -> str:
     if not PROMPT.is_file():
         raise RouterError("Review prompt template is missing.")
@@ -275,8 +292,7 @@ def run_codex(worker_id: str, prompt: str, output: Path) -> dict[str, Any]:
     started = now()
     try:
         with (output / "events.jsonl").open("w") as out, (output / "run.log").open("w") as err:
-            result = subprocess.run(["codex", "exec", "-", "--sandbox", "read-only", "--json",
-                                     "--output-last-message", str(raw_result)], input=prompt, text=True,
+            result = subprocess.run(secure_exec_command(workdir, raw_result), input=prompt, text=True,
                                     cwd=workdir, env=env, stdout=out, stderr=err, timeout=1800, check=False)
     except subprocess.TimeoutExpired:
         raise RouterError(f"{name} review exceeded the execution timeout.") from None
@@ -292,6 +308,8 @@ def run_codex(worker_id: str, prompt: str, output: Path) -> dict[str, Any]:
         "task_id": output.name, "worker_id": worker_id, "worker_name": name, "status": "success",
         "started_at": started, "finished_at": now(), "exit_code": 0,
         "artifacts": ["artifacts/review-result.json"], "errors": [], "tests": [], "review_recommended": False,
+        "permission_profile": ":workspace", "approval_policy": "never", "user_config": "ignored",
+        "session_persistence": "ephemeral",
     }, indent=2) + "\n")
     return parsed
 
