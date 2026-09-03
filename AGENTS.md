@@ -62,6 +62,7 @@ Before changing files in this package:
 - Do not create account cycling, quota switching, or automatic credential movement.
 - Profile selection must be explicit. If the selected profile is unavailable or out of credits, fail closed and let the controller choose a different authorised provider/seat.
 - Keep local edits bounded to the assigned workdir.
+- Automation must use the fixed Codex permission-profile boundary: `default_permissions=":workspace"`, `approval_policy="never"`, explicit `-C`, ignored ambient user config, and ephemeral sessions. Do not reintroduce legacy `--sandbox` flags into automated C1/C2 execution.
 - A Codex worker may produce local implementation/diffs/evidence, but must not deploy, publish, send messages, delete material data, change credentials, or mutate external production systems without the separate authority required by the owning workflow.
 - Do not turn this repository into a second queue, tracker, or orchestration database.
 - For the GitHub review router, an exact supported review command from a requester with verified write/maintain/admin repository permission is approval to post that review only.
@@ -76,9 +77,11 @@ Before changing files in this package:
 --worker C2 -> CODEX_HOME=~/.codex-david
 ```
 
-It runs the supplied task file through `codex exec --sandbox workspace-write` in the supplied workdir and writes execution evidence under `runtime/outputs/<TASK-ID>/`.
+For automated work orders it runs `codex exec` in the supplied workdir with an explicit `:workspace` permission profile, `approval_policy="never"`, ignored ambient user config, and an ephemeral session. The selected `CODEX_HOME` supplies authentication only. Execution evidence is written under `runtime/outputs/<TASK-ID>/`.
 
-That local capability does **not** by itself mean arbitrary GitHub agents can safely dispatch to the Mac. GitHub-controlled general work-order exposure is owned by `tbhrc/ai-engine` and tracked in `tbhrc/ai-engine#44` until live-proven.
+The automated executor must fail closed if the selected seat is unavailable. It must never silently rotate to the other profile.
+
+GitHub-controlled general work-order exposure is owned by `tbhrc/ai-engine` and tracked in `tbhrc/ai-engine#44`; this launcher remains the profile-isolation/execution component rather than an independent remote control plane.
 
 ## GitHub Review Router
 
@@ -91,7 +94,7 @@ Supported selectors are fixed:
 @codex-david review    -> C2 -> ~/.codex-david
 ```
 
-The router runs from trusted default-branch code on a dedicated self-hosted runner and fetches PR metadata/diffs through the GitHub API. PR code is untrusted review input and must not be executed.
+The router runs from trusted default-branch code on a dedicated self-hosted runner and fetches PR metadata/diffs through the GitHub API. PR code is untrusted review input and must not be executed. The model runs inside an empty disposable `:workspace` directory under the same deterministic no-approval/ephemeral boundary used by general work orders.
 
 Current proof state as of 3 September 2026:
 
