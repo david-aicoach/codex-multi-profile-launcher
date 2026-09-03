@@ -24,6 +24,8 @@ Important boundaries:
 - GitHub comment text is parsed as data and is never interpolated into a shell command.
 - A requester must pass the workflow association prefilter and the router's GitHub collaborator-permission check (`write`, `maintain`, or `admin`).
 - The model's advisory `verdict` never becomes a GitHub APPROVE or REQUEST_CHANGES action automatically; the router always posts a COMMENT review.
+- Automated model execution uses fixed trusted CLI arguments: `--strict-config`, `--ignore-user-config`, `--ephemeral`, `--skip-git-repo-check`, explicit `-C`, `default_permissions=":workspace"`, and `approval_policy="never"`.
+- The disposable review directory is the only workspace root available to the model. No legacy `--sandbox read-only` flag is used.
 - The native OpenAI `@codex` integration is unchanged.
 
 ## Supported commands
@@ -74,7 +76,11 @@ issue_comment on PR
   -> fetch PR metadata + diff via API
   -> select exact C1/C2 CODEX_HOME
   -> codex login status
-  -> codex exec in an empty read-only workspace
+  -> codex exec in an empty disposable :workspace
+       + strict config
+       + ignored ambient user config
+       + approval_policy=never
+       + ephemeral session
   -> validate structured JSON result
   -> POST pull-request COMMENT review
 ```
@@ -99,7 +105,7 @@ Codex receives:
 - optional review focus;
 - explicit instructions that the diff is untrusted data.
 
-Codex runs with `--sandbox read-only` from an empty temporary work directory. It does not clone or execute the target PR.
+Codex runs from an empty temporary work directory under the built-in `:workspace` permission profile with network restricted by that profile and no interactive approval route. Ambient user config is ignored and the session is ephemeral. The target PR is never cloned or executed.
 
 The router validates these result fields before posting:
 
@@ -144,11 +150,11 @@ runtime/outputs/GH-<owner>-<repo>-PR-<number>-<run-id>-<worker>/
   error.md        # failure only
 ```
 
-The PR diff itself is not persisted by the router.
+Successful `status.json` also records the permission profile, approval policy, ignored ambient user config, and ephemeral session policy. The PR diff itself is not persisted by the router.
 
 ## Failure behavior
 
-If the selected profile is missing, logged out, times out, returns invalid JSON, or fails for any other expected reason, the router posts a sanitized failure message and stops.
+If the selected profile is missing, logged out, out of credits, times out, returns invalid JSON, or fails for any other expected reason, the router posts a sanitized failure message and stops.
 
 Example:
 
@@ -160,15 +166,7 @@ It never silently retries with the other paid account.
 
 ## Usage attribution verification
 
-Repository code can prove which local `CODEX_HOME` was selected, but it cannot independently query ChatGPT Business billing attribution without relying on non-public account APIs. Verify the first end-to-end run manually:
-
-1. record the David and Business Codex usage before the test;
-2. trigger `@codex-david review` on a small PR;
-3. confirm the review footer says `C2 / Codex David`;
-4. confirm David's Codex usage changed and Business did not;
-5. repeat with `@codex-business review`.
-
-Do not add quota scraping or automatic account switching to perform this check.
+Repository code can prove which local `CODEX_HOME` was selected, but it cannot independently query ChatGPT Business billing attribution without relying on non-public account APIs. Verify first-use attribution from observed account usage and the durable routed profile evidence. Do not add quota scraping or automatic account switching.
 
 ## Tests
 
@@ -180,4 +178,4 @@ python3 -m unittest discover -s tests -v
 bash -n scripts/verify-review-runner.sh
 ```
 
-The unit suite covers command routing, malformed input, shell-injection-shaped comments, arbitrary worker/path rejection, event parsing, structured result validation, profile mismatch, severity validation, no-findings output, and schema loading.
+The unit suite covers command routing, malformed input, shell-injection-shaped comments, arbitrary worker/path rejection, event parsing, exact C1/C2 mappings, the fixed least-privilege Codex invocation, structured result validation, profile mismatch, severity validation, no-findings output, and schema loading.
